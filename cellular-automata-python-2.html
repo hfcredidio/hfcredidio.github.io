@@ -1,0 +1,862 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <link href='//fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,700,400italic' rel='stylesheet' type='text/css'>
+  <link rel="stylesheet" type="text/css" href="http://hfcredidio.github.io/theme/css/style.min.css">
+  <link rel="stylesheet" type="text/css" href="http://hfcredidio.github.io/theme/css/pygments.min.css">
+  <link rel="stylesheet" type="text/css" href="http://hfcredidio.github.io/theme/css/font-awesome.min.css">
+
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="robots" content="" />
+<meta name="author" content="Heitor Credidio" />
+<meta name="description" content="Last time we ended up with a nice little class that implemented our one dimensional cellular automaton. That code works perfectly fine if all you want is to play around with it and make nice figures, but we have bigger plans here. Before further exploring this subject, we might wanna test our code for performance, as some speed is gonna make our work easier in latter posts." />
+<meta name="keywords" content="python, cellular-automata, pypy, numpy">
+<meta property="og:site_name" content="Untitled0.ipynb"/>
+<meta property="og:title" content="Cellular Automata in Python Part 2: Harder, Better, Faster, Stronger (but Mostly Faster)"/>
+<meta property="og:description" content="Last time we ended up with a nice little class that implemented our one dimensional cellular automaton. That code works perfectly fine if all you want is to play around with it and make nice figures, but we have bigger plans here. Before further exploring this subject, we might wanna test our code for performance, as some speed is gonna make our work easier in latter posts."/>
+<meta property="og:locale" content="en_US"/>
+<meta property="og:url" content="http://hfcredidio.github.io/cellular-automata-python-2.html"/>
+<meta property="og:type" content="article"/>
+<meta property="article:published_time" content="2015-09-15 00:00:00+02:00"/>
+<meta property="article:modified_time" content=""/>
+<meta property="article:author" content="http://hfcredidio.github.io/author/heitor-credidio.html">
+<meta property="article:section" content="python"/>
+<meta property="article:tag" content="python"/>
+<meta property="article:tag" content="cellular-automata"/>
+<meta property="article:tag" content="pypy"/>
+<meta property="article:tag" content="numpy"/>
+<meta property="og:image" content="me.jpg">  <title>Untitled0.ipynb &ndash; Cellular Automata in Python Part 2: Harder, Better, Faster, Stronger (but Mostly Faster)</title>
+</head>
+<body>
+  <aside>
+    <div>
+      <a href="http://hfcredidio.github.io">
+        <img src="me.jpg" alt="H. Credidio's Blog*" title="H. Credidio's Blog*">
+      </a>
+      <h1><a href="http://hfcredidio.github.io">H. Credidio's Blog*</a></h1>
+      <p>*May contain only small traces of blog</p>
+      <nav>
+        <ul class="list">
+        </ul>
+      </nav>
+      <ul class="social">
+        <li><a class="sc-email" href="http://www.google.com/recaptcha/mailhide/d?k=01-iUr91_5Pgjuf8Ivmwnkvw==&c=SzwfT3O1d99ta7a3d2tihVQL_AwroFW4DerCxJ4Xd_U=" target="_blank"><i class="fa fa-envelope"></i></a></li>
+        <li><a class="sc-twitter" href="https://twitter.com/htrcrd" target="_blank"><i class="fa fa-twitter"></i></a></li>
+        <li><a class="sc-github" href="https://github.com/hfcredidio" target="_blank"><i class="fa fa-github"></i></a></li>
+      </ul>
+    </div>
+  </aside>
+  <main>
+    <nav>
+      <a href="http://hfcredidio.github.io">Home</a>
+      <a href="/archives.html">Archives</a>
+      <a href="/categories.html">Categories</a>
+    </nav>
+
+<article>
+  <header>
+    <h1 id="cellular-automata-python-2">Cellular Automata in Python Part 2: Harder, Better, Faster, Stronger (but Mostly Faster)</h1>
+    <p>Posted on Ter 15 setembro 2015 in <a href="http://hfcredidio.github.io/category/python.html">python</a></p>
+  </header>
+  <div>
+    <style type="text/css">/*!
+*
+* IPython notebook
+*
+*/.ansibold{font-weight:700}.ansiblack{}.ansired{color:#8b0000}.ansigreen{6400}.ansiyellow{color:#c4a000}.ansiblue{8b}.ansipurple{color:#9400d3}.ansicyan{color:#4682b4}.ansigray{color:gray}.ansibgblack{background-}.ansibgred{background-color:red}.ansibggreen{background-color:green}.ansibgyellow{background-color:#ff0}.ansibgblue{background-f}.ansibgpurple{background-color:#ff00ff}.ansibgcyan{background-ff}.ansibggray{background-color:gray}div.cell{border:1px solid transparent;display:-webkit-box;-webkit-box-orient:vertical;display:-moz-box;-moz-box-orient:vertical;display:box;box-orient:vertical;box-align:stretch;display:flex;flex-direction:column;align-items:stretch;border-radius:2px;box-sizing:border-box;-moz-box-sizing:border-box;border-width:thin;border-style:solid;width:100%;padding:5px;margin:0;outline:0}div.cell.selected{border-color:#ababab}@media print{div.cell.selected{border-color:transparent}}.edit_mode div.cell.selected{border-color:green}.prompt{min-width:14ex;padding:.4em;margin:0;font-family:monospace;text-align:right;line-height:1.21429em}div.inner_cell{display:-webkit-box;-webkit-box-orient:vertical;display:-moz-box;-moz-box-orient:vertical;display:box;box-orient:vertical;box-align:stretch;display:flex;flex-direction:column;align-items:stretch;-webkit-box-flex:1;-moz-box-flex:1;box-flex:1;flex:1}@-moz-document url-prefix(){div.inner_cell{overflow-x:hidden}}div.input_area{border:1px solid #cfcfcf;border-radius:2px;background:#f7f7f7;line-height:1.21429em}div.prompt:empty{padding-top:0;padding-bottom:0}div.unrecognized_cell{padding:5px 5px 5px 0;display:-webkit-box;-webkit-box-orient:horizontal;display:-moz-box;-moz-box-orient:horizontal;display:box;box-orient:horizontal;box-align:stretch;display:flex;flex-direction:row;align-items:stretch}div.unrecognized_cell .inner_cell{border-radius:2px;padding:5px;font-weight:700;color:red;border:1px solid #cfcfcf;background:#eaeaea}div.unrecognized_cell .inner_cell a,div.unrecognized_cell .inner_cell a:hover{color:inherit;text-decoration:none}@media (max-width:540px){.prompt{text-align:left}div.unrecognized_cell>div.prompt{display:none}}div.code_cell{}div.input{page-break-inside:avoid;display:-webkit-box;-webkit-box-orient:horizontal;display:-moz-box;-moz-box-orient:horizontal;display:box;box-orient:horizontal;box-align:stretch;display:flex;flex-direction:row;align-items:stretch}@media (max-width:540px){div.input{-webkit-box-orient:vertical;-moz-box-orient:vertical;box-orient:vertical;box-align:stretch;display:flex;flex-direction:column;align-items:stretch}}div.input_prompt{color:navy;border-top:1px solid transparent}div.input_area>div.highlight{margin:.4em;border:none;padding:0;background-color:transparent}div.input_area>div.highlight>pre{margin:0;border:none;padding:0;background-color:transparent}.CodeMirror{line-height:1.21429em;font-size:14px;height:auto;background:0 0}.CodeMirror-scroll{overflow-y:hidden;overflow-x:auto}.CodeMirror-lines{padding:.4em}.CodeMirror-linenumber{padding:0 8px 0 4px}.CodeMirror-gutters{border-bottom-left-radius:2px;border-top-left-radius:2px}.CodeMirror pre{padding:0;border:0;border-radius:0}.highlight-base,.highlight-variable{}.highlight-variable-2{color:#1a1a1a}.highlight-variable-3{color:#333}.highlight-string{color:#BA2121}.highlight-comment{color:#408080;font-style:italic}.highlight-number{80}.highlight-atom{color:#88F}.highlight-keyword{color:green;font-weight:700}.highlight-builtin{color:green}.highlight-error{color:red}.highlight-operator{color:#A2F;font-weight:700}.highlight-meta{color:#A2F}.highlight-def{f}.highlight-string-2{color:#f50}.highlight-qualifier{color:#555}.highlight-bracket{color:#997}.highlight-tag{color:#170}.highlight-attribute{c}.highlight-header{f}.highlight-quote{90}.highlight-link{c}.cm-s-ipython span.cm-keyword{color:green;font-weight:700}.cm-s-ipython span.cm-atom{color:#88F}.cm-s-ipython span.cm-number{80}.cm-s-ipython span.cm-def{f}.cm-s-ipython span.cm-variable{}.cm-s-ipython span.cm-operator{color:#A2F;font-weight:700}.cm-s-ipython span.cm-variable-2{color:#1a1a1a}.cm-s-ipython span.cm-variable-3{color:#333}.cm-s-ipython span.cm-comment{color:#408080;font-style:italic}.cm-s-ipython span.cm-string{color:#BA2121}.cm-s-ipython span.cm-string-2{color:#f50}.cm-s-ipython span.cm-meta{color:#A2F}.cm-s-ipython span.cm-qualifier{color:#555}.cm-s-ipython span.cm-builtin{color:green}.cm-s-ipython span.cm-bracket{color:#997}.cm-s-ipython span.cm-tag{color:#170}.cm-s-ipython span.cm-attribute{c}.cm-s-ipython span.cm-header{f}.cm-s-ipython span.cm-quote{90}.cm-s-ipython span.cm-link{c}.cm-s-ipython span.cm-error{color:red}.cm-s-ipython span.cm-tab{background:url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADAAAAAMCAYAAAAkuj5RAAAAAXNSR0IArs4c6QAAAGFJREFUSMft1LsRQFAQheHPowAKoACx3IgEKtaEHujDjORSgWTH/ZOdnZOcM/sgk/kFFWY0qV8foQwS4MKBCS3qR6ixBJvElOobYAtivseIE120FaowJPN75GMu8j/LfMwNjh4HUpwg4LUAAAAASUVORK5CYII=')right no-repeat}div.output_wrapper{display:-webkit-box;-webkit-box-align:stretch;display:-moz-box;-moz-box-align:stretch;display:box;box-orient:vertical;box-align:stretch;display:flex;flex-direction:column;align-items:stretch;z-index:1}div.output_scroll{height:24em;width:100%;overflow:auto;border-radius:2px;-webkit-box-shadow:inset 0 2px 8px rgba(0,0,0,.8);box-shadow:inset 0 2px 8px rgba(0,0,0,.8);display:block}div.output_collapsed{margin:0;padding:0;display:-webkit-box;-webkit-box-orient:vertical;display:-moz-box;-moz-box-orient:vertical;display:box;box-orient:vertical;box-align:stretch;display:flex;flex-direction:column;align-items:stretch}div.out_prompt_overlay{height:100%;padding:0 .4em;position:absolute;border-radius:2px}div.out_prompt_overlay:hover{-webkit-box-shadow:inset 0 0 1px #000;box-shadow:inset 0 0 1px #000;background:rgba(240,240,240,.5)}div.output_prompt{color:#8b0000}div.output_area{padding:0;page-break-inside:avoid;display:-webkit-box;-webkit-box-orient:horizontal;display:-moz-box;-moz-box-orient:horizontal;display:box;box-orient:horizontal;box-align:stretch;display:flex;flex-direction:row;align-items:stretch}div.output_area .MathJax_Display{text-align:left!important}div.output_area div.output_area img,div.output_area svg{max-width:100%;height:auto}div.output_area img.unconfined,div.output_area svg.unconfined{max-width:none}.output{display:-webkit-box;-webkit-box-orient:vertical;display:-moz-box;-moz-box-orient:vertical;display:box;box-orient:vertical;box-align:stretch;display:flex;flex-direction:column;align-items:stretch}@media (max-width:540px){div.output_area{-webkit-box-orient:vertical;-moz-box-orient:vertical;box-orient:vertical;box-align:stretch;display:flex;flex-direction:column;align-items:stretch}}div.output_area pre{margin:0;padding:0;border:0;vertical-align:baseline;background-color:transparent;border-radius:0}div.output_subarea{overflow-x:auto;padding:.4em;-webkit-box-flex:1;-moz-box-flex:1;box-flex:1;flex:1;max-width:calc(100% - 14ex)}div.output_text{text-align:left;line-height:1.21429em}div.output_stderr{background:#fdd}div.output_latex{text-align:left}div.output_javascript:empty{padding:0}.js-error{color:#8b0000}div.raw_input_container{font-family:monospace;padding-top:5px}span.raw_input_prompt{}input.raw_input{font-family:inherit;font-size:inherit;color:inherit;width:auto;vertical-align:baseline;padding:0 .25em;margin:0 .25em}input.raw_input:focus{box-shadow:none}p.p-space{margin-bottom:10px}div.output_unrecognized{padding:5px;font-weight:700;color:red}div.output_unrecognized a,div.output_unrecognized a:hover{color:inherit;text-decoration:none}.rendered_html{}.rendered_html :link,.rendered_html :visited,.rendered_html h1:first-child{margin-top:.538em}.rendered_html h2:first-child{margin-top:.636em}.rendered_html h3:first-child{margin-top:.777em}.rendered_html h4:first-child,.rendered_html h5:first-child,.rendered_html h6:first-child{margin-top:1em}.rendered_html *+ol,.rendered_html *+ul{margin-top:1em}.rendered_html *+table{margin-top:1em}.rendered_html *+p{margin-top:1em}.rendered_html *+img{margin-top:1em}div.text_cell{display:-webkit-box;-webkit-box-orient:horizontal;display:-moz-box;-moz-box-orient:horizontal;display:box;box-orient:horizontal;box-align:stretch;display:flex;flex-direction:row;align-items:stretch}@media (max-width:540px){div.text_cell>div.prompt{display:none}}div.text_cell_render{outline:0;resize:none;width:inherit;border-style:none;padding:.5em .5em .5em .4em;box-sizing:border-box;-moz-box-sizing:border-box;-webkit-box-sizing:border-box}a.anchor-link:link{text-decoration:none;padding:0 20px;visibility:hidden}h1:hover .anchor-link,h2:hover .anchor-link,h3:hover .anchor-link,h4:hover .anchor-link,h5:hover .anchor-link,h6:hover .anchor-link{visibility:visible}.text_cell.rendered .input_area{display:none}.text_cell.rendered .text_cell.unrendered .text_cell_render{display:none}.cm-header-1,.cm-header-2,.cm-header-3,.cm-header-4,.cm-header-5,.cm-header-6{font-weight:700;font-family:"Helvetica Neue",Helvetica,Arial,sans-serif}.cm-header-1{font-size:185.7%}.cm-header-2{font-size:157.1%}.cm-header-3{font-size:128.6%}.cm-header-4{font-size:110%}.cm-header-5,.cm-header-6{font-size:100%;font-style:italic}</style>
+<style type="text/css">.highlight .hll { background-color: #ffffcc }
+.highlight  { background: #f8f8f8; }
+.highlight .c { color: #408080; font-style: italic } /* Comment */
+.highlight .err { border: 1px solid #FF0000 } /* Error */
+.highlight .k { color: #008000; font-weight: bold } /* Keyword */
+.highlight .o { color: #666666 } /* Operator */
+.highlight .cm { color: #408080; font-style: italic } /* Comment.Multiline */
+.highlight .cp { color: #BC7A00 } /* Comment.Preproc */
+.highlight .c1 { color: #408080; font-style: italic } /* Comment.Single */
+.highlight .cs { color: #408080; font-style: italic } /* Comment.Special */
+.highlight .gd { color: #A00000 } /* Generic.Deleted */
+.highlight .ge { font-style: italic } /* Generic.Emph */
+.highlight .gr { color: #FF0000 } /* Generic.Error */
+.highlight .gh { color: #000080; font-weight: bold } /* Generic.Heading */
+.highlight .gi { color: #00A000 } /* Generic.Inserted */
+.highlight .go { color: #888888 } /* Generic.Output */
+.highlight .gp { color: #000080; font-weight: bold } /* Generic.Prompt */
+.highlight .gs { font-weight: bold } /* Generic.Strong */
+.highlight .gu { color: #800080; font-weight: bold } /* Generic.Subheading */
+.highlight .gt { color: #0044DD } /* Generic.Traceback */
+.highlight .kc { color: #008000; font-weight: bold } /* Keyword.Constant */
+.highlight .kd { color: #008000; font-weight: bold } /* Keyword.Declaration */
+.highlight .kn { color: #008000; font-weight: bold } /* Keyword.Namespace */
+.highlight .kp { color: #008000 } /* Keyword.Pseudo */
+.highlight .kr { color: #008000; font-weight: bold } /* Keyword.Reserved */
+.highlight .kt { color: #B00040 } /* Keyword.Type */
+.highlight .m { color: #666666 } /* Literal.Number */
+.highlight .s { color: #BA2121 } /* Literal.String */
+.highlight .na { color: #7D9029 } /* Name.Attribute */
+.highlight .nb { color: #008000 } /* Name.Builtin */
+.highlight .nc { color: #0000FF; font-weight: bold } /* Name.Class */
+.highlight .no { color: #880000 } /* Name.Constant */
+.highlight .nd { color: #AA22FF } /* Name.Decorator */
+.highlight .ni { color: #999999; font-weight: bold } /* Name.Entity */
+.highlight .ne { color: #D2413A; font-weight: bold } /* Name.Exception */
+.highlight .nf { color: #0000FF } /* Name.Function */
+.highlight .nl { color: #A0A000 } /* Name.Label */
+.highlight .nn { color: #0000FF; font-weight: bold } /* Name.Namespace */
+.highlight .nt { color: #008000; font-weight: bold } /* Name.Tag */
+.highlight .nv { color: #19177C } /* Name.Variable */
+.highlight .ow { color: #AA22FF; font-weight: bold } /* Operator.Word */
+.highlight .w { color: #bbbbbb } /* Text.Whitespace */
+.highlight .mb { color: #666666 } /* Literal.Number.Bin */
+.highlight .mf { color: #666666 } /* Literal.Number.Float */
+.highlight .mh { color: #666666 } /* Literal.Number.Hex */
+.highlight .mi { color: #666666 } /* Literal.Number.Integer */
+.highlight .mo { color: #666666 } /* Literal.Number.Oct */
+.highlight .sb { color: #BA2121 } /* Literal.String.Backtick */
+.highlight .sc { color: #BA2121 } /* Literal.String.Char */
+.highlight .sd { color: #BA2121; font-style: italic } /* Literal.String.Doc */
+.highlight .s2 { color: #BA2121 } /* Literal.String.Double */
+.highlight .se { color: #BB6622; font-weight: bold } /* Literal.String.Escape */
+.highlight .sh { color: #BA2121 } /* Literal.String.Heredoc */
+.highlight .si { color: #BB6688; font-weight: bold } /* Literal.String.Interpol */
+.highlight .sx { color: #008000 } /* Literal.String.Other */
+.highlight .sr { color: #BB6688 } /* Literal.String.Regex */
+.highlight .s1 { color: #BA2121 } /* Literal.String.Single */
+.highlight .ss { color: #19177C } /* Literal.String.Symbol */
+.highlight .bp { color: #008000 } /* Name.Builtin.Pseudo */
+.highlight .vc { color: #19177C } /* Name.Variable.Class */
+.highlight .vg { color: #19177C } /* Name.Variable.Global */
+.highlight .vi { color: #19177C } /* Name.Variable.Instance */
+.highlight .il { color: #666666 } /* Literal.Number.Integer.Long */</style><html><body><div class="cell border-box-sizing text_cell rendered">
+<div class="prompt input_prompt">
+</div>
+<div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<p>Last time we ended up with a nice little class that implemented our
+one dimensional cellular automaton. That code works perfectly fine if
+all you want is to play around with it and make nice figures,
+but we have bigger plans here. Before further exploring this subject, we
+might wanna test our code for performance, as some speed is gonna make our
+work easier in latter posts.</p>
+<p>First we'll take the original code.</p>
+</div>
+</div>
+</div>
+<div class="cell border-box-sizing code_cell rendered">
+<div class="input">
+<div class="prompt input_prompt">In [1]:</div>
+<div class="inner_cell">
+<div class="input_area">
+<div class=" highlight hl-ipython3"><pre><span class="o">%%</span><span class="k">file</span> prof0.py
+
+from random import randint
+
+def rolling_window(arr, wsize):
+    arr = arr[-wsize//2 + 1:] + arr + arr[:wsize//2]
+    for i in range(len(arr) - wsize + 1):
+        yield arr[i:i + wsize]
+
+
+class CAutomaton:
+    def __init__(self, ncells, k, init='center'):
+        self.ncells = ncells
+        self.k = k
+
+        if init == 'center':
+            self.cells = [0] * self.ncells
+            self.cells[self.ncells // 2] = 1
+        elif init == 'random':
+            self.cells = [randint(0, 1) for _ in range(self.ncells)]
+        else:
+            self.cells = list(init)
+            assert len(self.cells) == self.ncells
+
+    @staticmethod
+    def make_rule(rule_id, k):
+        rule_len = 2 ** k
+        rule = list(map(int, bin(rule_id)[2:]))
+        rule = [0] * (rule_len - len(rule)) + rule
+        rule = rule[::-1]
+        return rule
+
+    def state_id(self, state):
+        assert len(state) == self.k
+        return int(''.join(map(str, state)), base=2)
+
+    def apply_rule(self, rule):
+        assert len(rule) == 2 ** self.k
+        self.cells = [rule[self.state_id(w)]
+                      for w in rolling_window(self.cells, self.k)]
+        return self
+</pre></div>
+</div>
+</div>
+</div>
+<div class="output_wrapper">
+<div class="output">
+<div class="output_area"><div class="prompt"></div>
+<div class="output_subarea output_stream output_stdout output_text">
+<pre>Overwriting prof0.py
+</pre>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="cell border-box-sizing text_cell rendered">
+<div class="prompt input_prompt">
+</div>
+<div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<p>This will be our reference implementation.
+Let's make a simple script to validate future implementations comparing
+with prof0.py, and time a simple benchmark.</p>
+</div>
+</div>
+</div>
+<div class="cell border-box-sizing code_cell rendered">
+<div class="input">
+<div class="prompt input_prompt">In [2]:</div>
+<div class="inner_cell">
+<div class="input_area">
+<div class=" highlight hl-ipython3"><pre><span class="o">%%</span><span class="k">file</span> timing.py
+from prof0 import CAutomaton as CARef
+
+
+def test(version):
+    exec('from {} import CAutomaton as CACmp'.format(version), globals())
+    rule_ref = CARef.make_rule(126, 3)
+    rule_cmp = CACmp.make_rule(126, 3)
+    assert all(i == j for i, j in zip(rule_ref, rule_cmp))
+
+    caref = CARef(255, 3)
+    cacmp = CACmp(255, 3)
+    assert all(i == j for i, j in zip(caref.cells, cacmp.cells))
+    
+    for i in range(100):
+        caref.apply_rule(rule_ref)
+        cacmp.apply_rule(rule_cmp)
+        assert all(i == j for i, j in zip(caref.cells, cacmp.cells))
+
+    caref = CARef(255, 3, init='random')
+    cacmp = CARef(255, 3, init=caref.cells)
+    assert all(i == j for i, j in zip(caref.cells, cacmp.cells))
+    
+    for i in range(100):
+        caref.apply_rule(rule_ref)
+        cacmp.apply_rule(rule_cmp)
+        assert all(i == j for i, j in zip(caref.cells, cacmp.cells))
+
+    print('All tests passed.')
+
+    
+def time(version, number_of_loops):
+    from timeit import timeit
+    prep = ';'.join(['from {} import CAutomaton'.format(version),
+                     'ca = CAutomaton(250, 3)',
+                     'rule = CAutomaton.make_rule(126, 3)'])
+    main = 'ca.apply_rule(rule)'
+    
+    total_time = timeit(main, prep, number=number_of_loops)
+    avg_time = total_time / number_of_loops
+    
+    res = '{} loops, total {:.2e} s, avg. {:.2e} s/loop'
+    print(res.format(number_of_loops, total_time, avg_time))
+
+    
+if __name__ == '__main__':
+    import sys
+    version = sys.argv[1]
+    test(version)
+    time(version, 10000)
+</pre></div>
+</div>
+</div>
+</div>
+<div class="output_wrapper">
+<div class="output">
+<div class="output_area"><div class="prompt"></div>
+<div class="output_subarea output_stream output_stdout output_text">
+<pre>Overwriting timing.py
+</pre>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="cell border-box-sizing code_cell rendered">
+<div class="input">
+<div class="prompt input_prompt">In [3]:</div>
+<div class="inner_cell">
+<div class="input_area">
+<div class=" highlight hl-ipython3"><pre><span class="o">!</span>python timing.py prof0
+</pre></div>
+</div>
+</div>
+</div>
+<div class="output_wrapper">
+<div class="output">
+<div class="output_area"><div class="prompt"></div>
+<div class="output_subarea output_stream output_stdout output_text">
+<pre>All tests passed.
+10000 loops, total 1.25e+01 s, avg. 1.25e-03 s/loop
+</pre>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="cell border-box-sizing text_cell rendered">
+<div class="prompt input_prompt">
+</div>
+<div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<p>Ok, it takes around 13 seconds for my computer to apply a rule 10,000 times, but is that
+fast or slow? I'm gonna bet it's slow, this being a pure python implementation and all, but
+to get an idea of how slow it is, I made a simple C implementation for us to have a
+performance goal. You can check the code <a href="www.gooogle.com">here</a>.</p>
+</div>
+</div>
+</div>
+<div class="cell border-box-sizing code_cell rendered">
+<div class="input">
+<div class="prompt input_prompt">In [4]:</div>
+<div class="inner_cell">
+<div class="input_area">
+<div class=" highlight hl-ipython3"><pre><span class="o">!</span>gcc-5 -O3 -std<span class="o">=</span>c99 cprof.c -o cprof <span class="o">&amp;&amp;</span> ./cprof
+</pre></div>
+</div>
+</div>
+</div>
+<div class="output_wrapper">
+<div class="output">
+<div class="output_area"><div class="prompt"></div>
+<div class="output_subarea output_stream output_stdout output_text">
+<pre>All tests passed.
+10000 loops, total 2.00e-02 s, avg. 2.00e-06 s/loop
+</pre>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="cell border-box-sizing text_cell rendered">
+<div class="prompt input_prompt">
+</div>
+<div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<p>Whoa, That was fast<a href="https://www.youtube.com/watch?v=aIWrFNDKQ6o">!</a> About 625 times faster to be precise. 
+That's embarrassing I guess, but keep in mind we use python not for the runtime speed but because
+we love simple and beautiful code. Besides, I'm sure we can make our code a lot faster with
+not much work.</p>
+<p>The python stack offers a handful of optimization alternatives that vary a lot in which approach they take
+to execute the code faster. One of the most promising and actively developed is <a href="http://pypy.org/">PyPy</a>, which
+is basically a JITed python interpreter. It has the disadvantage that most packages that
+use the CPython C-API (i.e. all the important ones, like numpy, scipy, pandas, etc) are not compatible with it. Luckily
+our implementation is pure python, making it a perfect test case for pypy. Using it is just
+a matter of substituting <code>python</code> for <code>pypy</code> in the command line.</p>
+</div>
+</div>
+</div>
+<div class="cell border-box-sizing code_cell rendered">
+<div class="input">
+<div class="prompt input_prompt">In [5]:</div>
+<div class="inner_cell">
+<div class="input_area">
+<div class=" highlight hl-ipython3"><pre><span class="o">!</span>pypy timing.py prof0
+</pre></div>
+</div>
+</div>
+</div>
+<div class="output_wrapper">
+<div class="output">
+<div class="output_area"><div class="prompt"></div>
+<div class="output_subarea output_stream output_stdout output_text">
+<pre>All tests passed.
+10000 loops, total 1.17e+00 s, avg. 1.17e-04 s/loop
+</pre>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="cell border-box-sizing text_cell rendered">
+<div class="prompt input_prompt">
+</div>
+<div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<p>Now, that's a considerable speed up for literally no extra work, props to the pypy team.
+Before going to other methods we might wanna address the <code>state_id</code> method. As noted in the last post, 
+all these string conversions going on definitely aren't helping performance. Let's try
+to fix it with some clever bit shifting (ok, not that clever). If you don't get whats going on
+just remember that <code>1 &lt;&lt; n == 2 ** n</code> and <code>0 &lt;&lt; n == 0</code> so that what this function is basically
+doing is <code>sum(2**i for i, j in enumerate(reversed(state)) if j)</code>, which is basically your standard
+way of converting binary to decimal. The only reason I'm using bit shifting arithmetic is
+because it's a lil' bit faster.</p>
+</div>
+</div>
+</div>
+<div class="cell border-box-sizing code_cell rendered">
+<div class="input">
+<div class="prompt input_prompt">In [6]:</div>
+<div class="inner_cell">
+<div class="input_area">
+<div class=" highlight hl-ipython3"><pre><span class="o">%%</span><span class="k">file</span> prof1.py
+from prof0 import CAutomaton as CABase
+
+class CAutomaton(CABase):
+    def state_id(self, state):
+        assert len(state) == self.k
+        sid = 0
+        for i, j in enumerate(reversed(state)):
+            sid |= j &lt;&lt; i
+        return sid
+</pre></div>
+</div>
+</div>
+</div>
+<div class="output_wrapper">
+<div class="output">
+<div class="output_area"><div class="prompt"></div>
+<div class="output_subarea output_stream output_stdout output_text">
+<pre>Overwriting prof1.py
+</pre>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="cell border-box-sizing code_cell rendered">
+<div class="input">
+<div class="prompt input_prompt">In [7]:</div>
+<div class="inner_cell">
+<div class="input_area">
+<div class=" highlight hl-ipython3"><pre><span class="o">!</span>pypy timing.py prof1
+</pre></div>
+</div>
+</div>
+</div>
+<div class="output_wrapper">
+<div class="output">
+<div class="output_area"><div class="prompt"></div>
+<div class="output_subarea output_stream output_stdout output_text">
+<pre>All tests passed.
+10000 loops, total 5.59e-01 s, avg. 5.59e-05 s/loop
+</pre>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="cell border-box-sizing text_cell rendered">
+<div class="prompt input_prompt">
+</div>
+<div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<p>Nice, we got an even better speed up (there might be some unnecessary overhead due to the subclassing, but I don't wanna rewrite the whole class here). We're at 23x right now relative to the pure python implementation, finally bellow the 1s mark, and "only" an order of magnitude slower than C.</p>
+<p>I'm pretty satisfied with pypy, but let's see if we can make it even faster using numpy arrays. The main strategy when writing numpy code is to try and get rid of all the loops you can, and use ufuncs and fancy indexing instead. The first challenge is the fact the our code uses a rolling window, and this kind of stencil operations are normally not supported by the numpy API. Surprisingly, some quick googling <a href="http://www.rigtorp.se/2011/01/01/rolling-statistics-numpy.html">revealed</a> that actually there is a way of doing rolling windows in numpy. Here is how it looks like.</p>
+</div>
+</div>
+</div>
+<div class="cell border-box-sizing code_cell rendered">
+<div class="input">
+<div class="prompt input_prompt">In [8]:</div>
+<div class="inner_cell">
+<div class="input_area">
+<div class=" highlight hl-ipython3"><pre><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="k">def</span> <span class="nf">rolling_window_np</span><span class="p">(</span><span class="n">arr</span><span class="p">,</span> <span class="n">wsize</span><span class="p">):</span>
+    <span class="n">arr</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">((</span><span class="n">arr</span><span class="p">[</span><span class="o">-</span><span class="n">wsize</span><span class="o">//</span><span class="mi">2</span><span class="o">+</span><span class="mi">1</span><span class="p">:],</span> <span class="n">arr</span><span class="p">,</span> <span class="n">arr</span><span class="p">[:</span><span class="n">wsize</span><span class="o">//</span><span class="mi">2</span><span class="p">]))</span>
+    <span class="n">shape</span> <span class="o">=</span> <span class="n">arr</span><span class="o">.</span><span class="n">shape</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="p">(</span><span class="n">arr</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">wsize</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">wsize</span><span class="p">)</span>
+    <span class="n">strides</span> <span class="o">=</span> <span class="n">arr</span><span class="o">.</span><span class="n">strides</span> <span class="o">+</span> <span class="p">(</span><span class="n">arr</span><span class="o">.</span><span class="n">strides</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">],)</span>
+    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">lib</span><span class="o">.</span><span class="n">stride_tricks</span><span class="o">.</span><span class="n">as_strided</span><span class="p">(</span><span class="n">arr</span><span class="p">,</span> <span class="n">shape</span><span class="o">=</span><span class="n">shape</span><span class="p">,</span> <span class="n">strides</span><span class="o">=</span><span class="n">strides</span><span class="p">)</span>
+
+<span class="n">rolling_window_np</span><span class="p">([</span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="mi">3</span><span class="p">,</span><span class="mi">4</span><span class="p">,</span><span class="mi">5</span><span class="p">,</span><span class="mi">6</span><span class="p">],</span> <span class="mi">3</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+</div>
+<div class="output_wrapper">
+<div class="output">
+<div class="output_area"><div class="prompt output_prompt">Out[8]:</div>
+<div class="output_text output_subarea output_execute_result">
+<pre>array([[6, 1, 2],
+       [1, 2, 3],
+       [2, 3, 4],
+       [3, 4, 5],
+       [4, 5, 6],
+       [5, 6, 1]])</pre>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="cell border-box-sizing text_cell rendered">
+<div class="prompt input_prompt">
+</div>
+<div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<p>Ok, this definitely works, but if this implementation looks a bit arcane it's because it is. I mean, <code>stride_tricks</code>? Where did that come from? It's definitely nowhere
+in the <a href="http://docs.scipy.org/doc/numpy/search.html?q=stride_tricks">online documentation</a>.
+I even managed to segfault the interpreter by messing with the strides.
+Well, better not worry about that too much, let's see how this implementation
+compares with our pure python one.</p>
+</div>
+</div>
+</div>
+<div class="cell border-box-sizing code_cell rendered">
+<div class="input">
+<div class="prompt input_prompt">In [9]:</div>
+<div class="inner_cell">
+<div class="input_area">
+<div class=" highlight hl-ipython3"><pre><span class="kn">from</span> <span class="nn">prof0</span> <span class="k">import</span> <span class="n">rolling_window</span> <span class="k">as</span> <span class="n">rolling_window_py</span>
+<span class="n">x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">10</span><span class="p">)</span>
+<span class="o">%</span><span class="k">timeit</span> list(rolling_window_py(x, 3))
+<span class="o">%</span><span class="k">timeit</span> rolling_window_np(x, 3)
+<span class="nb">print</span><span class="p">()</span>
+<span class="n">x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">255</span><span class="p">)</span>
+<span class="o">%</span><span class="k">timeit</span> list(rolling_window_py(x, 3))
+<span class="o">%</span><span class="k">timeit</span> rolling_window_np(x, 3)
+</pre></div>
+</div>
+</div>
+</div>
+<div class="output_wrapper">
+<div class="output">
+<div class="output_area"><div class="prompt"></div>
+<div class="output_subarea output_stream output_stdout output_text">
+<pre>100000 loops, best of 3: 16.4 µs per loop
+10000 loops, best of 3: 29.9 µs per loop
+
+10000 loops, best of 3: 129 µs per loop
+10000 loops, best of 3: 28.3 µs per loop
+</pre>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="cell border-box-sizing text_cell rendered">
+<div class="prompt input_prompt">
+</div>
+<div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<p>As it normally goes with numpy, the stride trick rolling window is only faster when
+the array is large enough so that the numpy overhead is small compared to the
+operations performed. Also worth noticing is that the numpy implementation 
+uses more memory than the pure python one, because it stores the
+whole windowed array in memory, unlike our first implementation which used
+generators. Since we're going to work with a not too large nor too small
+number of cells (somewhere between 200 and 500), this nifty implementation looks good
+enough for us.</p>
+<p>Now, just substituting the rolling window function is unlikely to
+yield any significant speedup. We also need to vectorize the <code>state_id</code>
+method. Looking at the method used in prof1.py this is just a matter
+of using the correct numpy ufuncs. Here's the result</p>
+</div>
+</div>
+</div>
+<div class="cell border-box-sizing code_cell rendered">
+<div class="input">
+<div class="prompt input_prompt">In [10]:</div>
+<div class="inner_cell">
+<div class="input_area">
+<div class=" highlight hl-ipython3"><pre><span class="o">%%</span><span class="k">file</span> prof2.py
+from prof0 import CAutomaton as CABase
+import numpy as np
+
+
+def rolling_window(arr, wsize):
+    arr = np.concatenate((arr[-wsize//2+1:], arr, arr[:wsize//2]))
+    shape = arr.shape[:-1] + (arr.shape[-1] - wsize + 1, wsize)
+    strides = arr.strides + (arr.strides[-1],)
+    return np.lib.stride_tricks.as_strided(arr, shape=shape, strides=strides)
+
+
+class CAutomaton(CABase):
+    def __init__(self, ncells, k, init='center'):
+        CABase.__init__(self, ncells, k, init)
+        self.cells = np.array(self.cells, dtype=np.byte)
+        self.base = np.arange(self.k)[::-1]
+       
+    @staticmethod
+    def make_rule(rule_num, k):
+        return np.array(CABase.make_rule(rule_num, k))
+        
+    def apply_rule(self, rule):
+        assert len(rule) == 2 ** self.k
+        states = rolling_window(self.cells, self.k)
+        state_ids = np.bitwise_or.reduce(states &lt;&lt; self.base, axis=1)
+        self.cells = rule[state_ids]
+        return self
+</pre></div>
+</div>
+</div>
+</div>
+<div class="output_wrapper">
+<div class="output">
+<div class="output_area"><div class="prompt"></div>
+<div class="output_subarea output_stream output_stdout output_text">
+<pre>Overwriting prof2.py
+</pre>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="cell border-box-sizing code_cell rendered">
+<div class="input">
+<div class="prompt input_prompt">In [11]:</div>
+<div class="inner_cell">
+<div class="input_area">
+<div class=" highlight hl-ipython3"><pre><span class="o">!</span>python timing.py prof2
+</pre></div>
+</div>
+</div>
+</div>
+<div class="output_wrapper">
+<div class="output">
+<div class="output_area"><div class="prompt"></div>
+<div class="output_subarea output_stream output_stdout output_text">
+<pre>All tests passed.
+10000 loops, total 7.57e-01 s, avg. 7.57e-05 s/loop
+</pre>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="cell border-box-sizing text_cell rendered">
+<div class="prompt input_prompt">
+</div>
+<div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<p>Just a bit slower than the best pypy result. One last trick I want to try is to
+use fancy indexing to eliminate completely the <code>rolling_window</code> from <code>apply_rule</code>.
+To do that we'll use an $N_{cells}\times k$ array called <code>neigh</code>, which is
+basically an adjacency list of the cells, that is, the <em>i</em>th row of the
+array contains the indices of the <em>k</em> neighbors of the <em>i</em>th cell.
+Then we can get the states by simply evaluating <code>cells[neigh]</code>
+(this is not just a optimization strategy, this will come in handy in later posts).
+The end result look like this (with no subclassing)</p>
+</div>
+</div>
+</div>
+<div class="cell border-box-sizing code_cell rendered">
+<div class="input">
+<div class="prompt input_prompt">In [12]:</div>
+<div class="inner_cell">
+<div class="input_area">
+<div class=" highlight hl-ipython3"><pre><span class="o">%%</span><span class="k">file</span> prof3.py
+import numpy as np
+
+
+def rolling_window(arr, wsize):
+    arr = np.concatenate((arr[-wsize//2+1:], arr, arr[:wsize//2]))
+    shape = arr.shape[:-1] + (arr.shape[-1] - wsize + 1, wsize)
+    strides = arr.strides + (arr.strides[-1],)
+    return np.lib.stride_tricks.as_strided(arr, shape=shape, strides=strides)
+
+
+class CAutomaton:
+    def __init__(self, ncells, k, init='center'):
+        self.ncells = ncells
+        self.k = k
+        self.base = np.arange(self.k)[::-1]
+        self.neigh = rolling_window(np.arange(self.ncells), self.k)
+
+        if init == 'center':
+            self.cells = np.zeros(self.ncells, dtype=np.byte)
+            self.cells[self.ncells // 2] = 1
+        elif init == 'random':
+            self.cells = np.random.randint(1, 2, size=self.ncells).astype(np.byte)
+        else:
+            self.cells = np.array(init)
+            assert len(self.cells) == self.ncells
+
+    @staticmethod
+    def make_rule(rule_id, k):
+        rule_len = 2 ** k
+        rule = list(map(int, bin(rule_id)[2:]))
+        rule = [0] * (rule_len - len(rule)) + rule
+        rule = rule[::-1]
+        return np.array(rule)
+
+    def apply_rule(self, rule):
+        assert len(rule) == 2 ** self.k
+        states = self.cells[self.neigh]
+        state_ids = np.bitwise_or.reduce(states &lt;&lt; self.base, axis=1)
+        self.cells = rule[state_ids]
+        return self
+</pre></div>
+</div>
+</div>
+</div>
+<div class="output_wrapper">
+<div class="output">
+<div class="output_area"><div class="prompt"></div>
+<div class="output_subarea output_stream output_stdout output_text">
+<pre>Overwriting prof3.py
+</pre>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="cell border-box-sizing code_cell rendered">
+<div class="input">
+<div class="prompt input_prompt">In [14]:</div>
+<div class="inner_cell">
+<div class="input_area">
+<div class=" highlight hl-ipython3"><pre><span class="o">!</span>python timing.py prof3
+</pre></div>
+</div>
+</div>
+</div>
+<div class="output_wrapper">
+<div class="output">
+<div class="output_area"><div class="prompt"></div>
+<div class="output_subarea output_stream output_stdout output_text">
+<pre>All tests passed.
+10000 loops, total 3.53e-01 s, avg. 3.53e-05 s/loop
+</pre>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="cell border-box-sizing text_cell rendered">
+<div class="prompt input_prompt">
+</div>
+<div class="inner_cell">
+<div class="text_cell_render border-box-sizing rendered_html">
+<p>Faster than pypy! I think I'm calling it a day, we could probably get even
+better performance by using <a href="http://numba.pydata.org/">numba</a> to jit some of
+the most work intensive parts, or even use <a href="http://cython.org/">cython</a> to create
+a compiled extension, but more than performance I want to keep this code simple and
+easily modifiable, and 35 ns per iteration looks great for our purposes.
+Here is a resume of the opera</p>
+<table>
+<thead><tr>
+<th></th>
+<th>Time per $10^4$ iterations</th>
+<th>Speedup</th>
+<th>Cumulative Speedup</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Pure Python</td>
+<td>12.5 s</td>
+<td>-</td>
+<td>-</td>
+</tr>
+<tr>
+<td>Pypy</td>
+<td>1.17 s</td>
+<td>11 x</td>
+<td>11 x</td>
+</tr>
+<tr>
+<td>Numpy</td>
+<td>0.76 s</td>
+<td>1.5 x</td>
+<td>16.5 x</td>
+</tr>
+<tr>
+<td>Pypy + Bitshift</td>
+<td>0.56 s</td>
+<td>1.4 x</td>
+<td>22.3 x</td>
+</tr>
+<tr>
+<td>Numpy + Fancy Indexing</td>
+<td>0.35 s</td>
+<td>1.6 x</td>
+<td>35.7 x</td>
+</tr>
+<tr>
+<td>C</td>
+<td>0.02 s</td>
+<td>17 x</td>
+<td>625 x</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</div>
+<script type="text/javascript">if (!document.getElementById('mathjaxscript_pelican_#%@#$@#')) {
+    var mathjaxscript = document.createElement('script');
+    mathjaxscript.id = 'mathjaxscript_pelican_#%@#$@#';
+    mathjaxscript.type = 'text/javascript';
+    mathjaxscript.src = '//cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML';
+    mathjaxscript[(window.opera ? "innerHTML" : "text")] =
+        "MathJax.Hub.Config({" +
+        "    config: ['MMLorHTML.js']," +
+        "    TeX: { extensions: ['AMSmath.js','AMSsymbols.js','noErrors.js','noUndefined.js'], equationNumbers: { autoNumber: 'AMS' } }," +
+        "    jax: ['input/TeX','input/MathML','output/HTML-CSS']," +
+        "    extensions: ['tex2jax.js','mml2jax.js','MathMenu.js','MathZoom.js']," +
+        "    displayAlign: 'center'," +
+        "    displayIndent: '0em'," +
+        "    showMathMenu: true," +
+        "    tex2jax: { " +
+        "        inlineMath: [ ['$','$'] ], " +
+        "        displayMath: [ ['$$','$$'] ]," +
+        "        processEscapes: true," +
+        "        preview: 'TeX'," +
+        "    }, " +
+        "    'HTML-CSS': { " +
+        "        styles: { '.MathJax_Display, .MathJax .mo, .MathJax .mi, .MathJax .mn': {color: 'black ! important'} }" +
+        "    } " +
+        "}); ";
+    (document.body || document.getElementsByTagName('head')[0]).appendChild(mathjaxscript);
+}
+</script>
+
+  </div>
+  <div class="tag-cloud">
+    <p>
+      <a href="http://hfcredidio.github.io/tag/python.html">python</a>
+      <a href="http://hfcredidio.github.io/tag/cellular-automata.html">cellular-automata</a>
+      <a href="http://hfcredidio.github.io/tag/pypy.html">pypy</a>
+      <a href="http://hfcredidio.github.io/tag/numpy.html">numpy</a>
+    </p>
+  </div>
+</article>
+
+    <footer>
+<p>
+  &copy; Heitor Credidio 2015 - This work is licensed under a <a rel="license" href="http://creativecommons.org/licenses/by-sa/4.0/">Creative Commons Attribution-ShareAlike 4.0 International License</a>
+</p>
+<p>Built using <a href="http://getpelican.com" target="_blank">Pelican</a> - <a href="https://github.com/alexandrevicenzi/flex" target="_blank">Flex</a> theme by <a href="http://alexandrevicenzi.com" target="_blank">Alexandre Vicenzi</a></p><p>
+  <a rel="license"
+     href="http://creativecommons.org/licenses/by-sa/4.0/"
+     target="_blank">
+    <img alt="Creative Commons License"
+         title="Creative Commons License"
+         style="border-width:0"
+         src="https://i.creativecommons.org/l/by-sa/4.0/80x15.png"
+         width="80"
+         height="15"/>
+  </a>
+</p>    </footer>
+  </main>
+<script type="application/ld+json">
+{
+  "@context": "http://schema.org",
+  "@type": "BlogPosting",
+  "name": "Cellular Automata in Python Part 2: Harder, Better, Faster, Stronger (but Mostly Faster)",
+  "headline": "Cellular Automata in Python Part 2: Harder, Better, Faster, Stronger (but Mostly Faster)",
+  "datePublished": "2015-09-15 00:00:00+02:00",
+  "dateModified": "",
+  "author": {
+    "@type": "Person",
+    "name": "Heitor Credidio",
+    "url": "http://hfcredidio.github.io/author/heitor-credidio.html"
+  },
+  "image": "me.jpg",
+  "url": "http://hfcredidio.github.io/cellular-automata-python-2.html",
+  "description": "Last time we ended up with a nice little class that implemented our one dimensional cellular automaton. That code works perfectly fine if all you want is to play around with it and make nice figures, but we have bigger plans here. Before further exploring this subject, we might wanna test our code for performance, as some speed is gonna make our work easier in latter posts."
+}
+</script></body>
+</html>
